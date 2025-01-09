@@ -47,7 +47,6 @@
                                 <a href="{{ route('questions.edit', ['quizId' => $quiz->id, 'id' => $question->id]) }}"
                                     class="btn btn-warning">Edit</a>
 
-
                                 <form action="{{ route('questions.destroy', $question->id) }}" method="POST"
                                     class="d-inline">
                                     @csrf
@@ -60,25 +59,25 @@
                     @endforeach
                 </tbody>
             </table>
+
+            <!-- Checkbox and Final Submit Button -->
+            <div class="mt-4">
+                <input type="checkbox" id="confirmFinalize">
+                <label for="confirmFinalize">I confirm that all questions are correct and finalized.</label>
+            </div>
+            <div>
+                <form method="POST" action="{{ route('questions.submit', $quiz->id) }}">
+                    @csrf
+                    <button id="finalSubmit" class="btn btn-success mt-2" disabled>Final Submit</button>
+                </form>
+            </div>
         @endif
-        <div class="mt-4">
-            <input type="checkbox" id="confirmFinalize">
-            <label for="confirmFinalize">I confirm that all questions are correct and finalized.</label>
-        </div>
-        <div>
-            <form method="POST" action="{{ route('questions.submit', $quiz->id) }}">
-                @csrf
-                <button id="finalSubmit" class="btn btn-success mt-2" disabled>Final Submit</button>
-            </form>
-        </div>
-
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        document.getElementById('confirmFinalize').addEventListener('change', function() {
+        document.getElementById('confirmFinalize')?.addEventListener('change', function() {
             const finalSubmitButton = document.getElementById('finalSubmit');
             finalSubmitButton.disabled = !this.checked;
         });

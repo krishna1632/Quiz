@@ -41,10 +41,8 @@
                         <td>{{ $quiz->start_time }}</td>
                         <td>{{ $quiz->end_time }}</td>
                         <td>
-                            @if ($quiz->is_submitted)
-                                <div class="alert alert-warning">
-                                    Questions for this quiz are finalized and cannot be modified or added.
-                                </div>
+                            @if ($quiz->questions && $quiz->questions->where('is_submitted', 1)->count() > 0)
+                                <button class="btn btn-secondary btn-sm" disabled>Questions Finalized</button>
                             @else
                                 <a href="{{ route('questions.index', $quiz->id) }}" class="btn btn-primary btn-sm">Add
                                     Question</a>

@@ -20,7 +20,7 @@ Route::delete('/quizzes/{quiz}', [QuizController::class, 'destroy'])->name('quiz
 Route::get('/quizzes/{quiz}/questions', [QuestionController::class, 'index'])->name('questions.index');
 Route::get('/quizzes/{quiz}/questions/create', [QuestionController::class, 'create'])->name('questions.create');
 Route::post('/quizzes/{quiz}/questions', [QuestionController::class, 'store'])->name('questions.store');
-Route::get('questions/{id}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
-Route::put('questions/{id}', [QuestionController::class, 'update'])->name('questions.update');
+Route::get('quizzes/{quizId}/questions/{id}/edit', [QuestionController::class, 'edit'])->name('questions.edit');
+Route::put('quizzes/{quizId}/questions/{id}', [QuestionController::class, 'update'])->name('questions.update');
 Route::delete('questions/{id}', [QuestionController::class, 'destroy'])->name('questions.destroy');
-Route::get('/quizzes/{quiz}/submit', [QuestionController::class, 'submitQuestions'])->name('questions.submit');
+Route::post('/quizzes/{quizId}/submit-questions', [QuestionController::class, 'submitQuestions'])->name('questions.submit');

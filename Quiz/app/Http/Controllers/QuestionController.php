@@ -32,61 +32,74 @@ class QuestionController extends Controller
      */
     public function store(Request $request)
     {
-        // dd($request->all());
         // Validate the request
         $request->validate([
             'quiz_id' => 'required|exists:quizzes,id',
-            'question_text' => 'required|string|max:255',
-            'options' => 'required|array',
-            'correct_option' => 'required|integer', // Ensure correct option is valid
+            'questions' => 'required|array', // Multiple questions validation
+            'questions.*.question_text' => 'required|string|max:255',
+            'questions.*.options' => 'required|array|min:2',
+            'questions.*.correct_option' => 'required|integer|min:1',
         ]);
 
-        // Store the question
-        $question = new Question();
-        $question->quiz_id = $request->quiz_id;
-        $question->question_text = $request->question_text;
-        $question->options = json_encode($request->options); // Convert options array to JSON
-        $question->correct_option = $request->correct_option;
-        $question->is_submitted = 0; // Default value for is_submitted
-        $question->save();
+        // Loop through each question and save it
+        foreach ($request->questions as $questionData) {
+            Question::create([
+                'quiz_id' => $request->quiz_id,
+                'question_text' => $questionData['question_text'],
+                'options' => json_encode($questionData['options']), // Convert options array to JSON
+                'correct_option' => $questionData['correct_option'],
+            ]);
+        }
 
-        return redirect()->route('questions.index', $question->quiz_id)
-            ->with('success', 'Question added successfully!');
+        return response()->json(['message' => 'Questions saved successfully!'], 200);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit($id)
+    public function edit($quizId, $id)
     {
-        $question = Question::findOrFail($id);
-        $question->options = json_decode($question->options, true); // Decode JSON to array
-        $quiz = Quiz::findOrFail($question->quiz_id);
-        return view('questions.edit', compact('question', 'quiz'));
+        $quiz = Quiz::findOrFail($quizId); // Ensure quiz exists
+        $question = Question::findOrFail($id); // Find the question by ID
+
+        // Decode the options JSON to be used in the view
+        $question->options = json_decode($question->options, true);
+
+        return view('questions.edit', compact('quiz', 'question'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $quizId, $id)
     {
         // Validate the request
         $request->validate([
-            'quiz_id' => 'required|exists:quizzes,id',
             'question_text' => 'required|string|max:255',
-            'options' => 'required|array',
-            'correct_option' => 'required|integer',
+            'options' => 'required|array|min:2',
+            'correct_option' => 'required|string',
         ]);
 
-        // Update the question
+        // Find the question and update it
         $question = Question::findOrFail($id);
-        $question->question_text = $request->question_text;
-        $question->quiz_id = $request->quiz_id;
-        $question->options = json_encode($request->options); // Convert options array to JSON
-        $question->correct_option = $request->correct_option;
-        $question->save();
 
-        return redirect()->route('questions.index', $question->quiz_id)
+        $options = $request->input('options');
+        $correctOption = $request->input('correct_option');
+
+        // Ensure correct_option is valid
+        if ($correctOption < 1 || $correctOption > count($options)) {
+            return back()->withErrors(['correct_option' => 'The selected correct option is invalid.']);
+        }
+
+        // Update the question
+        $question->update([
+            'question_text' => $request->question_text,
+            'options' => json_encode($options), // Convert options array to JSON
+            'correct_option' => $correctOption,
+        ]);
+
+        // Redirect to index with success message
+        return redirect()->route('questions.index', $quizId)
             ->with('success', 'Question updated successfully!');
     }
 

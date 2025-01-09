@@ -14,7 +14,7 @@ class QuizController extends Controller
      */
     public function index()
     {
-        $quizzes = Quiz::all();
+        $quizzes = Quiz::with('questions')->get();
         return view('quizzes.index', compact('quizzes'));
     }
 

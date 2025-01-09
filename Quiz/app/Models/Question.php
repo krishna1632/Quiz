@@ -20,4 +20,10 @@ class Question extends Model
         'is_submitted',
     ];
 
+
+    public function quiz()
+    {
+        return $this->belongsTo(Quiz::class, 'quiz_id');
+    }
+
 }

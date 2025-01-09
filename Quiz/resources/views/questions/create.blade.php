@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Question</title>
+    <title>Create Questions</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -12,83 +12,104 @@
 
 <body>
     <div class="container mt-5">
-        <h1>Create Question</h1>
+        <h1>Create Questions</h1>
 
-        <form id="questionForm" action="{{ route('questions.store', $quiz->id) }}" method="POST">
-            @csrf
-            <input type="hidden" name="quiz_id" value="{{ $quiz->id }}">
-            <div class="mb-3">
-                <label for="question_text" class="form-label">Write Your Question</label>
-                <input type="text" name="question_text" class="form-control" id="question_text" required>
-            </div>
+        <div id="questionsContainer"></div>
 
-            <div class="mb-3">
-                <label class="form-label">How many options do you want to create?</label>
-                <div>
-                    <input type="radio" name="option_count" value="1" id="one_option"> Only one option<br>
-                    <input type="radio" name="option_count" value="2" id="two_options"> Two options<br>
-                    <input type="radio" name="option_count" value="3" id="three_options"> Three options<br>
-                    <input type="radio" name="option_count" value="4" id="four_options"> Four options<br>
-                    <input type="radio" name="option_count" value="5" id="other_options"> Others<br>
-                </div>
-            </div>
-
-            <div id="optionsContainer"></div>
-
-            <div class="mb-3" id="correctOptionContainer" style="display: none;">
-                <label for="correct_option" class="form-label">Choose the Correct Option</label>
-                <select name="correct_option" id="correct_option" class="form-select" required></select>
-            </div>
-
-            <div id="addedQuestionsList"></div>
-
-            <button type="button" class="btn btn-secondary mb-3" id="addAnotherQuestion">Add Another Question</button>
-            <button type="submit" class="btn btn-primary">Submit</button>
-        </form>
+        <button type="button" class="btn btn-secondary" id="addNextQuestion">Add Next Question</button>
+        <button type="button" class="btn btn-primary" id="submitQuestions">Submit All Questions</button>
+        <a href="{{ route('questions.index', $quiz->id) }}" class="btn btn-danger">Cancel</a>
     </div>
 
     <script>
-        const optionsContainer = document.getElementById('optionsContainer');
-        const correctOptionContainer = document.getElementById('correctOptionContainer');
-        const correctOptionSelect = document.getElementById('correct_option');
-        const addedQuestionsList = document.getElementById('addedQuestionsList');
-        const questionForm = document.getElementById('questionForm');
+        const questionsContainer = document.getElementById('questionsContainer');
+        const addNextQuestionButton = document.getElementById('addNextQuestion');
+        let questionIndex = 0; // Tracks the current question number
+        let removedQuestions = []; // Keeps track of removed question indexes
 
-        // Handle radio button change for number of options
-        document.querySelectorAll('input[name="option_count"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                optionsContainer.innerHTML = '';
-                correctOptionSelect.innerHTML = '';
+        // Function to create a new question interface
+        function createQuestionForm(index, showCancel = false) {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'card p-3 mb-3';
+            questionDiv.id = `questionForm_${index}`;
 
-                const optionCount = this.value;
+            questionDiv.innerHTML = `
+                <form>
+                    <h5>Question ${index + 1}</h5>
+                    <div class="mb-3">
+                        <label for="question_text_${index}" class="form-label">Write Your Question</label>
+                        <input type="text" name="question_text" class="form-control" id="question_text_${index}" required>
+                    </div>
 
-                if (optionCount === '5') {
-                    const inputField = document.createElement('input');
-                    inputField.type = 'number';
-                    inputField.className = 'form-control mb-3';
-                    inputField.placeholder = 'Enter number of options';
-                    inputField.id = 'dynamicOptionCount';
+                    <div class="mb-3">
+                        <label class="form-label">How many options do you want to create?</label>
+                        <div>
+                            <input type="radio" name="option_count_${index}" value="1"> Only one option<br>
+                            <input type="radio" name="option_count_${index}" value="2"> Two options<br>
+                            <input type="radio" name="option_count_${index}" value="3"> Three options<br>
+                            <input type="radio" name="option_count_${index}" value="4"> Four options<br>
+                            <input type="radio" name="option_count_${index}" value="5"> Others<br>
+                        </div>
+                    </div>
 
-                    inputField.addEventListener('input', function() {
-                        generateOptions(parseInt(this.value));
-                    });
+                    <div id="optionsContainer_${index}"></div>
 
-                    optionsContainer.appendChild(inputField);
-                } else {
-                    generateOptions(parseInt(optionCount));
-                }
+                    <div class="mb-3" id="correctOptionContainer_${index}" style="display: none;">
+                        <label for="correct_option_${index}" class="form-label">Choose the Correct Option</label>
+                        <select name="correct_option" id="correct_option_${index}" class="form-select" required></select>
+                    </div>
+
+                    <button type="button" class="btn btn-danger" id="cancelButton_${index}" onclick="removeQuestion(${index})" style="${showCancel ? 'display: block;' : 'display: none;'}">Cancel</button>
+                </form>
+            `;
+
+            // Add event listeners for option count radio buttons
+            questionDiv.querySelectorAll(`input[name="option_count_${index}"]`).forEach(radio => {
+                radio.addEventListener('change', function() {
+                    handleOptionCountChange(index, this.value);
+                });
             });
-        });
 
-        // Dynamically generate option fields
-        function generateOptions(count) {
+            questionsContainer.appendChild(questionDiv);
+        }
+
+        // Function to handle option count change
+        function handleOptionCountChange(index, value) {
+            const optionsContainer = document.getElementById(`optionsContainer_${index}`);
+            const correctOptionContainer = document.getElementById(`correctOptionContainer_${index}`);
+            const correctOptionSelect = document.getElementById(`correct_option_${index}`);
+
+            optionsContainer.innerHTML = '';
+            correctOptionSelect.innerHTML = '';
+
+            if (value === '5') {
+                const inputField = document.createElement('input');
+                inputField.type = 'number';
+                inputField.className = 'form-control mb-3';
+                inputField.placeholder = 'Enter number of options';
+
+                inputField.addEventListener('input', function() {
+                    generateOptions(index, parseInt(this.value));
+                });
+
+                optionsContainer.appendChild(inputField);
+            } else {
+                generateOptions(index, parseInt(value));
+            }
+        }
+
+        // Function to dynamically generate option fields
+        function generateOptions(index, count) {
+            const optionsContainer = document.getElementById(`optionsContainer_${index}`);
+            const correctOptionSelect = document.getElementById(`correct_option_${index}`);
+
             optionsContainer.innerHTML = '';
             correctOptionSelect.innerHTML = '';
 
             for (let i = 1; i <= count; i++) {
                 const optionInput = document.createElement('input');
                 optionInput.type = 'text';
-                optionInput.name = `options[${i}]`;
+                optionInput.name = `options_${index}_${i}`;
                 optionInput.className = 'form-control mb-3';
                 optionInput.placeholder = `Option ${i}`;
                 optionsContainer.appendChild(optionInput);
@@ -99,61 +120,88 @@
                 correctOptionSelect.appendChild(option);
             }
 
-            correctOptionContainer.style.display = count > 0 ? 'block' : 'none';
+            document.getElementById(`correctOptionContainer_${index}`).style.display = count > 0 ? 'block' : 'none';
         }
 
-        // Add another question logic
-        document.getElementById('addAnotherQuestion').addEventListener('click', function() {
-            const questionText = document.getElementById('question_text').value;
-            const optionCount = Array.from(document.querySelectorAll('input[name="option_count"]'))
-                .find(radio => radio.checked)?.value;
-            const options = Array.from(optionsContainer.querySelectorAll('input[name^="options"]'))
-                .map(input => input.value);
-            const correctOption = correctOptionSelect.value;
+        // Function to remove a question form
+        function removeQuestion(index) {
+            const questionDiv = document.getElementById(`questionForm_${index}`);
+            if (questionDiv) {
+                questionsContainer.removeChild(questionDiv);
+                removedQuestions.push(index); // Keep track of the removed question
+            }
+        }
 
-            if (!questionText || !optionCount || options.length === 0 || !correctOption) {
-                Swal.fire('Error', 'Please fill out all fields before adding another question.', 'error');
-                return;
+        // Add event listener for "Add Next Question"
+        addNextQuestionButton.addEventListener('click', function() {
+            // Reuse a removed question index if available
+            if (removedQuestions.length > 0) {
+                questionIndex = removedQuestions.shift();
             }
 
-            // Display the added question
-            const questionDiv = document.createElement('div');
-            questionDiv.className = 'card p-3 mb-3';
-            questionDiv.innerHTML = `
-            <h5>Question: ${questionText}</h5>
-            <p>Options:</p>
-            <ul>
-                ${options.map(opt => `<li>${opt}</li>`).join('')}
-            </ul>
-            <p>Correct Option: ${options[correctOption - 1]}</p>
-        `;
-            addedQuestionsList.appendChild(questionDiv);
-
-            // Reset options for next question
-            optionsContainer.innerHTML = '';
-            correctOptionContainer.style.display = 'none';
-            document.getElementById('question_text').value = ''; // Reset question text
-            document.querySelector('input[name="option_count"]:checked').checked = false; // Uncheck options count
+            createQuestionForm(questionIndex, true); // Show Cancel button only for new questions
+            questionIndex++;
         });
 
         // Handle form submission
-        questionForm.addEventListener('submit', function(event) {
-            const questionText = document.getElementById('question_text').value;
-            const optionCount = Array.from(document.querySelectorAll('input[name="option_count"]'))
-                .find(radio => radio.checked)?.value;
-            const options = Array.from(optionsContainer.querySelectorAll('input[name^="options"]'))
-                .map(input => input.value);
-            const correctOption = correctOptionSelect.value;
+        document.getElementById('submitQuestions').addEventListener('click', async function() {
+            const allQuestions = [];
 
-            if (!questionText || !optionCount || options.length === 0 || !correctOption) {
-                event.preventDefault();
-                Swal.fire('Error', 'Please fill out all fields before submitting.', 'error');
-                return;
+            for (let i = 0; i < questionIndex; i++) {
+                const questionDiv = document.getElementById(`questionForm_${i}`);
+                if (questionDiv) {
+                    const questionText = questionDiv.querySelector(`#question_text_${i}`).value;
+                    const options = Array.from(questionDiv.querySelectorAll(`[name^="options_${i}"]`)).map(
+                        input =>
+                        input.value);
+                    const correctOption = questionDiv.querySelector(`#correct_option_${i}`)?.value;
+
+                    if (!questionText || options.length === 0 || !correctOption) {
+                        Swal.fire('Error', `Please complete Question ${i + 1} before submitting.`, 'error');
+                        return;
+                    }
+
+                    allQuestions.push({
+                        question_text: questionText,
+                        options: options,
+                        correct_option: parseInt(correctOption),
+                    });
+                }
             }
 
-            // Manually submit the form if everything is valid
-            questionForm.submit();
+            try {
+                const response = await fetch("{{ route('questions.store', $quiz->id) }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({
+                        quiz_id: "{{ $quiz->id }}",
+                        questions: allQuestions
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    Swal.fire('Success', data.message, 'success').then(() => {
+                        window.location.href = "{{ route('questions.index', $quiz->id) }}";
+                    });
+                } else {
+                    const errorData = await response.json();
+                    Swal.fire('Error', errorData.message || 'An error occurred while saving questions.',
+                        'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'Something went wrong. Please try again later.', 'error');
+            }
         });
+
+
+        // Initial question form (without cancel button initially)
+        createQuestionForm(questionIndex);
+        questionIndex++;
     </script>
 </body>
 

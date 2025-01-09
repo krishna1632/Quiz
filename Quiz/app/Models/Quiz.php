@@ -10,4 +10,11 @@ class Quiz extends Model
     use HasFactory;
     protected $table = 'quizzes';
     protected $fillable = ['subject_type', 'department', 'semester', 'subject_name', 'faculty_name', 'date', 'start_time', 'end_time', 'status'];
+
+
+    public function questions()
+    {
+        return $this->hasMany(Question::class, 'quiz_id');
+    }
+
 }

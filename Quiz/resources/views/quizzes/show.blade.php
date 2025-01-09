@@ -1,5 +1,3 @@
-<!-- resources/views/quizzes/show.blade.php -->
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -54,14 +52,21 @@
                                     @endforeach
                                 </ul>
                             </td>
-                            <td>{{ $question->options[$question->correct_option] ?? 'N/A' }}</td>
+                            <td>
+                                @php
+                                    $options = json_decode($question->options, true);
+                                    $correctOptionIndex = $question->correct_option - 1; // Adjust for 0-based index
+                                    $correctOption = $options[$correctOptionIndex] ?? 'N/A';
+                                @endphp
+                                {{ $correctOption }}
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
         @endif
-        <a href="{{ route('quizzes.index') }}" class="btn btn-secondary mb-4">Back to Quizzes</a>
 
+        <a href="{{ route('quizzes.index') }}" class="btn btn-secondary mb-4">Back to Quizzes</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>

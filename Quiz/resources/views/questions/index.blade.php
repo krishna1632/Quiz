@@ -45,7 +45,7 @@
                             <td>{{ json_decode($question->options, true)[$question->correct_option - 1] ?? 'N/A' }}</td>
                             <td>
                                 <a href="{{ route('questions.edit', ['quizId' => $quiz->id, 'id' => $question->id]) }}"
-                                    class="btn btn-warning">Edit</a>
+                                    class="btn btn-warning btn-sm">Edit</a>
 
                                 <form action="{{ route('questions.destroy', $question->id) }}" method="POST"
                                     class="d-inline">
